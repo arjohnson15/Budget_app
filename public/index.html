@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Personal Finance Manager</h1>
+            <p>Take control of your financial future with style</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('overview')">
+                <span class="tab-icon">📊</span>
+                Overview
+            </button>
+            <button class="tab" onclick="showTab('income')">
+                <span class="tab-icon">💵</span>
+                Income
+            </button>
+            <button class="tab" onclick="showTab('expenses')">
+                <span class="tab-icon">💳</span>
+                Expenses
+            </button>
+            <button class="tab" onclick="showTab('budget')">
+                <span class="tab-icon">🎯</span>
+                Budget
+            </button>
+            <button class="tab" onclick="showTab('cashflow')">
+                <span class="tab-icon">📈</span>
+                Cash Flow
+            </button>
+            <button class="tab" onclick="showTab('savings')">
+                <span class="tab-icon">🏦</span>
+                Savings
+            </button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <!-- Current Balance Input -->
+            <div class="balance-input">
+                <h3>💳 Current Account Balance</h3>
+                <div class="balance-form">
+                    <div class="input-group">
+                        <span class="input-prefix">$</span>
+                        <input type="number" id="currentBalance" step="0.01" placeholder="0.00" class="balance-field">
+                        <button class="btn btn-primary" onclick="updateBalance()">Update Balance</button>
+                    </div>
+                </div>
+                <div class="balance-display" id="balanceDisplay">$0.00</div>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="summary-grid" id="summaryGrid">
+                <!-- Summary cards will be populated by JavaScript -->
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="main-grid">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>⚡ Quick Add Transaction</h2>
+                        <p>Add one-time income or expenses quickly</p>
+                    </div>
+                    <form id="quickTransactionForm" class="form">
+                        <div class="form-group">
+                            <label for="quickType">Transaction Type</label>
+                            <select id="quickType" class="form-select" required>
+                                <option value="">Select type</option>
+                                <option value="income">💰 Income</option>
+                                <option value="expense">💸 Expense</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="quickDescription">Description</label>
+                            <input type="text" id="quickDescription" class="form-input" placeholder="e.g., Bonus, Grocery shopping" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="quickAmount">Amount</label>
+                                <div class="input-group">
+                                    <span class="input-prefix">$</span>
+                                    <input type="number" id="quickAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="quickDate">Date</label>
+                                <input type="date" id="quickDate" class="form-input" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-full">Add Transaction</button>
+                    </form>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>📅 Upcoming Payments</h2>
+                        <p>Next 7 days</p>
+                    </div>
+                    <div id="upcomingPayments" class="payments-list">
+                        <!-- Upcoming payments will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Income Tab -->
+        <div id="income" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>💵 Income Sources</h2>
+                    <p>Track all your income streams</p>
+                </div>
+                <form id="incomeForm" class="form">
+                    <div class="form-group">
+                        <label for="incomeSource">Income Source</label>
+                        <input type="text" id="incomeSource" class="form-input" placeholder="e.g., Salary, Freelance, Side Hustle" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="incomeAmount">Amount</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="incomeAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="incomeFrequency">Frequency</label>
+                            <select id="incomeFrequency" class="form-select" onchange="toggleIncomeOptions()" required>
+                                <option value="">Select frequency</option>
+                                <option value="weekly">📅 Weekly</option>
+                                <option value="bi-weekly">📅 Bi-weekly</option>
+                                <option value="monthly">📅 Monthly</option>
+                                <option value="yearly">📅 Yearly</option>
+                                <option value="one-time">⚡ One-time</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="incomeOptions" class="frequency-options">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="incomeDepositDay">Deposit Day of Month (for monthly)</label>
+                                <input type="number" id="incomeDepositDay" class="form-input" min="1" max="31" placeholder="e.g., 15">
+                            </div>
+                            <div class="form-group">
+                                <label for="incomeSpecificDate">Or Specific Date (for one-time)</label>
+                                <input type="date" id="incomeSpecificDate" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="incomeStartDate">Start Date</label>
+                            <input type="date" id="incomeStartDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="incomeEndDate">End Date (optional)</label>
+                            <input type="date" id="incomeEndDate" class="form-input">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-full">Add Income Source</button>
+                </form>
+                
+                <div class="item-list" id="incomeList">
+                    <!-- Income items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Tab -->
+        <div id="expenses" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>💳 Expenses & Bills</h2>
+                    <p>Track your spending and recurring bills</p>
+                </div>
+                <form id="expenseForm" class="form">
+                    <div class="form-group">
+                        <label for="expenseName">Expense Name</label>
+                        <input type="text" id="expenseName" class="form-input" placeholder="e.g., Rent, Electric Bill, Groceries" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expenseAmount">Amount</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="expenseAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseCategory">Category</label>
+                            <input type="text" id="expenseCategory" class="form-input" placeholder="e.g., Housing, Utilities, Food">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expenseFrequency">Frequency</label>
+                            <select id="expenseFrequency" class="form-select" onchange="toggleExpenseOptions()" required>
+                                <option value="">Select frequency</option>
+                                <option value="weekly">📅 Weekly</option>
+                                <option value="bi-weekly">📅 Bi-weekly</option>
+                                <option value="monthly">📅 Monthly</option>
+                                <option value="yearly">📅 Yearly</option>
+                                <option value="one-time">⚡ One-time</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="expenseRecurring" checked>
+                                <span class="checkmark"></span>
+                                Recurring expense
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="expenseOptions" class="frequency-options">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expensePaymentDay">Payment Day of Month (for monthly)</label>
+                                <input type="number" id="expensePaymentDay" class="form-input" min="1" max="31" placeholder="e.g., 1">
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseSpecificDate">Or Specific Date (for one-time)</label>
+                                <input type="date" id="expenseSpecificDate" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expenseStartDate">Start Date</label>
+                            <input type="date" id="expenseStartDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseEndDate">End Date (optional)</label>
+                            <input type="date" id="expenseEndDate" class="form-input">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-danger btn-full">Add Expense</button>
+                </form>
+                
+                <div class="item-list" id="expenseList">
+                    <!-- Expense items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Tab -->
+        <div id="budget" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>🎯 Budget Categories</h2>
+                    <p>Set spending limits for different categories</p>
+                </div>
+                <form id="budgetForm" class="form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="budgetCategory">Category</label>
+                            <input type="text" id="budgetCategory" class="form-input" placeholder="e.g., Entertainment, Dining Out, Shopping" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="budgetAmount">Monthly Budget</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="budgetAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-full">Set Budget</button>
+                </form>
+                
+                <div class="item-list" id="budgetList">
+                    <!-- Budget items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Flow Tab -->
+        <div id="cashflow" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>📈 Cash Flow Projection</h2>
+                    <p>See your financial future</p>
+                </div>
+                <div class="form-group">
+                    <label for="cashflowDays">Projection Period:</label>
+                    <select id="cashflowDays" class="form-select" onchange="loadCashFlow()">
+                        <option value="7">📅 7 days</option>
+                        <option value="14">📅 14 days</option>
+                        <option value="30" selected>📅 30 days</option>
+                        <option value="60">📅 60 days</option>
+                        <option value="90">📅 90 days</option>
+                    </select>
+                </div>
+                <div id="cashFlowList" class="cashflow-list">
+                    <!-- Cash flow projection will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Savings Goals Tab -->
+        <div id="savings" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>🏦 Savings Goals</h2>
+                    <p>Track your progress toward financial goals</p>
+                </div>
+                <form id="savingsForm" class="form">
+                    <div class="form-group">
+                        <label for="savingsName">Goal Name</label>
+                        <input type="text" id="savingsName" class="form-input" placeholder="e.g., Emergency Fund, Vacation, New Car" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="savingsTarget">Target Amount</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="savingsTarget" class="form-input" step="0.01" placeholder="0.00" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="savingsCurrent">Current Amount</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="savingsCurrent" class="form-input" step="0.01" placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="savingsTargetDate">Target Date</label>
+                            <input type="date" id="savingsTargetDate" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="savingsMonthly">Monthly Contribution</label>
+                            <div class="input-group">
+                                <span class="input-prefix">$</span>
+                                <input type="number" id="savingsMonthly" class="form-input" step="0.01" placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-info btn-full">Add Savings Goal</button>
+                </form>
+                
+                <div class="item-list" id="savingsList">
+                    <!-- Savings goals will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
