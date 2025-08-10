@@ -19,7 +19,23 @@ const db = new sqlite3.Database(dbPath);
 
 // Initialize database tables
 db.serialize(() => {
-    // Income table - enhanced with deposit dates
+    // Enhanced accounts table - supports checking, savings, and credit cards
+    db.run(`CREATE TABLE IF NOT EXISTS accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('checking', 'savings', 'credit_card')),
+        current_balance DECIMAL(10,2) NOT NULL DEFAULT 0,
+        credit_limit DECIMAL(10,2) DEFAULT NULL,
+        apr DECIMAL(5,2) DEFAULT NULL,
+        minimum_payment DECIMAL(10,2) DEFAULT NULL,
+        due_day INTEGER DEFAULT NULL,
+        statement_day INTEGER DEFAULT NULL,
+        priority_level INTEGER DEFAULT 5 CHECK(priority_level BETWEEN 1 AND 10),
+        is_active BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Enhanced income table - link to specific accounts
     db.run(`CREATE TABLE IF NOT EXISTS income (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         source TEXT NOT NULL,
@@ -29,11 +45,13 @@ db.serialize(() => {
         specific_date DATE,
         start_date DATE NOT NULL,
         end_date DATE,
+        account_id INTEGER,
         is_active BOOLEAN DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (account_id) REFERENCES accounts(id)
     )`);
 
-    // Expenses table - enhanced with payment dates and one-time payments
+    // Enhanced expenses table - link to specific accounts and add priority
     db.run(`CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -42,14 +60,69 @@ db.serialize(() => {
         payment_day INTEGER,
         specific_date DATE,
         category TEXT,
+        account_id INTEGER,
         start_date DATE NOT NULL,
         end_date DATE,
+        priority_level INTEGER DEFAULT 5 CHECK(priority_level BETWEEN 1 AND 10),
         is_recurring BOOLEAN DEFAULT 1,
+        is_active BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (account_id) REFERENCES accounts(id)
+    )`);
+
+    // Enhanced savings goals with priority and deadlines
+    db.run(`CREATE TABLE IF NOT EXISTS savings_goals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        target_amount DECIMAL(10,2) NOT NULL,
+        current_amount DECIMAL(10,2) DEFAULT 0,
+        target_date DATE,
+        priority_level INTEGER DEFAULT 5 CHECK(priority_level BETWEEN 1 AND 10),
+        goal_type TEXT DEFAULT 'flexible' CHECK(goal_type IN ('emergency', 'time_sensitive', 'flexible', 'long_term')),
+        auto_contribution DECIMAL(10,2) DEFAULT 0,
+        account_id INTEGER,
+        is_active BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (account_id) REFERENCES accounts(id)
+    )`);
+
+    // Payment optimization scenarios
+    db.run(`CREATE TABLE IF NOT EXISTS optimization_scenarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        extra_payment_amount DECIMAL(10,2) DEFAULT 0,
+        strategy_type TEXT DEFAULT 'avalanche' CHECK(strategy_type IN ('avalanche', 'snowball', 'custom')),
+        include_savings BOOLEAN DEFAULT 1,
+        scenario_results TEXT, -- JSON data
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Priority rules for automated decision making
+    db.run(`CREATE TABLE IF NOT EXISTS priority_rules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rule_type TEXT NOT NULL,
+        condition_field TEXT NOT NULL,
+        condition_operator TEXT NOT NULL,
+        condition_value TEXT NOT NULL,
+        priority_adjustment INTEGER DEFAULT 0,
         is_active BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Budget categories table
+    // Payment schedule recommendations
+    db.run(`CREATE TABLE IF NOT EXISTS payment_recommendations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scenario_id INTEGER,
+        account_id INTEGER,
+        payment_date DATE NOT NULL,
+        payment_amount DECIMAL(10,2) NOT NULL,
+        payment_type TEXT DEFAULT 'regular' CHECK(payment_type IN ('minimum', 'extra', 'regular')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (scenario_id) REFERENCES optimization_scenarios(id),
+        FOREIGN KEY (account_id) REFERENCES accounts(id)
+    )`);
+
+    // Budget categories table (keep existing)
     db.run(`CREATE TABLE IF NOT EXISTS budget_categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         category TEXT NOT NULL UNIQUE,
@@ -57,18 +130,7 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Savings goals table
-    db.run(`CREATE TABLE IF NOT EXISTS savings_goals (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        target_amount DECIMAL(10,2) NOT NULL,
-        current_amount DECIMAL(10,2) DEFAULT 0,
-        target_date DATE,
-        monthly_contribution DECIMAL(10,2) DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    // Account balances table (for tracking current balance)
+    // Legacy account_balance table for compatibility
     db.run(`CREATE TABLE IF NOT EXISTS account_balance (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         account_name TEXT NOT NULL DEFAULT 'Main Account',
@@ -76,9 +138,28 @@ db.serialize(() => {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Insert default account if not exists
+    // Data migration and default setup
+    // Insert default checking account if no accounts exist
+    db.run(`INSERT OR IGNORE INTO accounts (id, name, type, current_balance, priority_level) 
+            SELECT 1, 'Main Checking', 'checking', 
+                   COALESCE((SELECT current_balance FROM account_balance WHERE id = 1), 0), 
+                   1 
+            WHERE NOT EXISTS (SELECT 1 FROM accounts WHERE id = 1)`);
+
+    // Insert default account_balance record for legacy compatibility
     db.run(`INSERT OR IGNORE INTO account_balance (id, account_name, current_balance) 
             VALUES (1, 'Main Account', 0)`);
+
+    // Create default emergency fund savings goal
+    db.run(`INSERT OR IGNORE INTO savings_goals (name, target_amount, goal_type, priority_level, account_id) 
+            VALUES ('Emergency Fund', 10000, 'emergency', 2, 1)`);
+
+    // Insert default priority rules
+    db.run(`INSERT OR IGNORE INTO priority_rules (rule_type, condition_field, condition_operator, condition_value, priority_adjustment) 
+            VALUES 
+            ('apr_high', 'apr', '>', '15.0', 3),
+            ('emergency_fund', 'goal_type', '=', 'emergency', 2),
+            ('due_soon', 'days_until_due', '<', '7', 1)`);
 });
 
 // Helper function to calculate next occurrence of a recurring item
@@ -241,35 +322,123 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Account balance routes
+// =============================================================================
+// LEGACY COMPATIBILITY ROUTES
+// =============================================================================
+
+// Legacy balance routes - maintained for compatibility
 app.get('/api/balance', (req, res) => {
-    db.get("SELECT current_balance FROM account_balance WHERE id = 1", (err, row) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
+    // Get primary checking account balance or fallback to legacy table
+    db.get(`SELECT current_balance FROM accounts WHERE type = 'checking' ORDER BY id ASC LIMIT 1`, (err, row) => {
+        if (err || !row) {
+            // Fallback to legacy table
+            db.get("SELECT current_balance FROM account_balance WHERE id = 1", (err2, row2) => {
+                if (err2) {
+                    res.status(500).json({ error: err2.message });
+                    return;
+                }
+                res.json({ balance: row2 ? row2.current_balance : 0 });
+            });
             return;
         }
-        res.json({ balance: row ? row.current_balance : 0 });
+        res.json({ balance: row.current_balance });
     });
 });
 
 app.post('/api/balance', (req, res) => {
     const { balance } = req.body;
+    // Update primary checking account and legacy table
     db.run(
-        "UPDATE account_balance SET current_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1",
+        "UPDATE accounts SET current_balance = ? WHERE type = 'checking' AND id = 1",
         [balance],
         function(err) {
             if (err) {
                 res.status(500).json({ error: err.message });
                 return;
             }
+            // Also update legacy table for compatibility
+            db.run(
+                "UPDATE account_balance SET current_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1",
+                [balance],
+                function(err2) {
+                    if (err2) console.log('Legacy table update failed:', err2.message);
+                }
+            );
             res.json({ balance: balance });
         }
     );
 });
 
-// Income routes
+// =============================================================================
+// NEW ACCOUNTS MANAGEMENT ROUTES
+// =============================================================================
+
+// Get all accounts
+app.get('/api/accounts', (req, res) => {
+    db.all("SELECT * FROM accounts WHERE is_active = 1 ORDER BY priority_level ASC, type ASC", (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(rows);
+    });
+});
+
+// Add new account
+app.post('/api/accounts', (req, res) => {
+    const { name, type, current_balance, credit_limit, apr, minimum_payment, due_day, statement_day, priority_level } = req.body;
+    
+    db.run(
+        `INSERT INTO accounts (name, type, current_balance, credit_limit, apr, minimum_payment, due_day, statement_day, priority_level) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, type, current_balance || 0, credit_limit, apr, minimum_payment, due_day, statement_day, priority_level || 5],
+        function(err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.json({ id: this.lastID });
+        }
+    );
+});
+
+// Update account
+app.put('/api/accounts/:id', (req, res) => {
+    const { name, type, current_balance, credit_limit, apr, minimum_payment, due_day, statement_day, priority_level } = req.body;
+    
+    db.run(
+        `UPDATE accounts SET name = ?, type = ?, current_balance = ?, credit_limit = ?, apr = ?, 
+         minimum_payment = ?, due_day = ?, statement_day = ?, priority_level = ? WHERE id = ?`,
+        [name, type, current_balance, credit_limit, apr, minimum_payment, due_day, statement_day, priority_level, req.params.id],
+        function(err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.json({ updated: this.changes });
+        }
+    );
+});
+
+// Delete account (soft delete)
+app.delete('/api/accounts/:id', (req, res) => {
+    db.run("UPDATE accounts SET is_active = 0 WHERE id = ?", req.params.id, function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({ deleted: this.changes });
+    });
+});
+
+// =============================================================================
+// ENHANCED INCOME ROUTES
+// =============================================================================
+
 app.get('/api/income', (req, res) => {
-    db.all("SELECT * FROM income WHERE is_active = 1 ORDER BY created_at DESC", (err, rows) => {
+    db.all(`SELECT i.*, a.name as account_name FROM income i 
+            LEFT JOIN accounts a ON i.account_id = a.id 
+            WHERE i.is_active = 1 ORDER BY i.created_at DESC`, (err, rows) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
@@ -279,11 +448,11 @@ app.get('/api/income', (req, res) => {
 });
 
 app.post('/api/income', (req, res) => {
-    const { source, amount, frequency, deposit_day, specific_date, start_date, end_date } = req.body;
+    const { source, amount, frequency, deposit_day, specific_date, start_date, end_date, account_id } = req.body;
     db.run(
-        `INSERT INTO income (source, amount, frequency, deposit_day, specific_date, start_date, end_date) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [source, amount, frequency, deposit_day, specific_date, start_date, end_date],
+        `INSERT INTO income (source, amount, frequency, deposit_day, specific_date, start_date, end_date, account_id) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [source, amount, frequency, deposit_day, specific_date, start_date, end_date, account_id],
         function(err) {
             if (err) {
                 res.status(500).json({ error: err.message });
@@ -304,9 +473,14 @@ app.delete('/api/income/:id', (req, res) => {
     });
 });
 
-// Expense routes
+// =============================================================================
+// ENHANCED EXPENSE ROUTES
+// =============================================================================
+
 app.get('/api/expenses', (req, res) => {
-    db.all("SELECT * FROM expenses WHERE is_active = 1 ORDER BY created_at DESC", (err, rows) => {
+    db.all(`SELECT e.*, a.name as account_name FROM expenses e 
+            LEFT JOIN accounts a ON e.account_id = a.id 
+            WHERE e.is_active = 1 ORDER BY e.created_at DESC`, (err, rows) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
@@ -316,11 +490,11 @@ app.get('/api/expenses', (req, res) => {
 });
 
 app.post('/api/expenses', (req, res) => {
-    const { name, amount, frequency, payment_day, specific_date, category, start_date, end_date, is_recurring } = req.body;
+    const { name, amount, frequency, payment_day, specific_date, category, start_date, end_date, is_recurring, account_id, priority_level } = req.body;
     db.run(
-        `INSERT INTO expenses (name, amount, frequency, payment_day, specific_date, category, start_date, end_date, is_recurring) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [name, amount, frequency, payment_day, specific_date, category, start_date, end_date, is_recurring !== false],
+        `INSERT INTO expenses (name, amount, frequency, payment_day, specific_date, category, start_date, end_date, is_recurring, account_id, priority_level) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, amount, frequency, payment_day, specific_date, category, start_date, end_date, is_recurring !== false, account_id, priority_level || 5],
         function(err) {
             if (err) {
                 res.status(500).json({ error: err.message });
@@ -341,35 +515,14 @@ app.delete('/api/expenses/:id', (req, res) => {
     });
 });
 
-// Budget routes
-app.get('/api/budget', (req, res) => {
-    db.all("SELECT * FROM budget_categories ORDER BY category", (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json(rows);
-    });
-});
+// =============================================================================
+// ENHANCED SAVINGS GOALS ROUTES
+// =============================================================================
 
-app.post('/api/budget', (req, res) => {
-    const { category, budgeted_amount } = req.body;
-    db.run(
-        "INSERT OR REPLACE INTO budget_categories (category, budgeted_amount) VALUES (?, ?)",
-        [category, budgeted_amount],
-        function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            res.json({ id: this.lastID, category, budgeted_amount });
-        }
-    );
-});
-
-// Savings goals routes
 app.get('/api/savings', (req, res) => {
-    db.all("SELECT * FROM savings_goals ORDER BY created_at DESC", (err, rows) => {
+    db.all(`SELECT s.*, a.name as account_name FROM savings_goals s 
+            LEFT JOIN accounts a ON s.account_id = a.id 
+            WHERE s.is_active = 1 ORDER BY s.priority_level ASC, s.created_at DESC`, (err, rows) => {
         if (err) {
             res.status(500).json({ error: err.message });
             return;
@@ -379,11 +532,12 @@ app.get('/api/savings', (req, res) => {
 });
 
 app.post('/api/savings', (req, res) => {
-    const { name, target_amount, current_amount, target_date, monthly_contribution } = req.body;
+    const { name, target_amount, current_amount, target_date, priority_level, goal_type, auto_contribution, account_id } = req.body;
+    
     db.run(
-        `INSERT INTO savings_goals (name, target_amount, current_amount, target_date, monthly_contribution) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [name, target_amount, current_amount || 0, target_date, monthly_contribution || 0],
+        `INSERT INTO savings_goals (name, target_amount, current_amount, target_date, priority_level, goal_type, auto_contribution, account_id) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, target_amount, current_amount || 0, target_date, priority_level || 5, goal_type || 'flexible', auto_contribution || 0, account_id],
         function(err) {
             if (err) {
                 res.status(500).json({ error: err.message });
@@ -409,7 +563,134 @@ app.put('/api/savings/:id', (req, res) => {
     );
 });
 
-// Cash flow projection endpoint
+// =============================================================================
+// BUDGET ROUTES (LEGACY COMPATIBILITY)
+// =============================================================================
+
+app.get('/api/budget', (req, res) => {
+    db.all("SELECT * FROM budget_categories ORDER BY category", (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json(rows);
+    });
+});
+
+app.post('/api/budget', (req, res) => {
+    const { category, budgeted_amount } = req.body;
+    db.run(
+        "INSERT OR REPLACE INTO budget_categories (category, budgeted_amount) VALUES (?, ?)",
+        [category, budgeted_amount],
+        function(err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+                return;
+            }
+            res.json({ id: this.lastID, category, budgeted_amount });
+        }
+    );
+});
+
+// =============================================================================
+// PAYMENT OPTIMIZATION ROUTES
+// =============================================================================
+
+// Calculate optimal payment strategy
+app.post('/api/optimize-payments', (req, res) => {
+    const { extra_amount, strategy_type, include_savings } = req.body;
+    
+    // Get all debt accounts (credit cards and loans)
+    db.all(`SELECT * FROM accounts WHERE type = 'credit_card' AND current_balance > 0 AND is_active = 1 
+            ORDER BY ${strategy_type === 'avalanche' ? 'apr DESC' : 'current_balance ASC'}`, (err, debts) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        
+        // Get savings goals if included
+        if (include_savings) {
+            db.all("SELECT * FROM savings_goals WHERE is_active = 1 ORDER BY priority_level ASC", (err, goals) => {
+                if (err) {
+                    res.status(500).json({ error: err.message });
+                    return;
+                }
+                
+                const optimization = calculateOptimalPayments(debts, goals, extra_amount || 0, strategy_type);
+                res.json(optimization);
+            });
+        } else {
+            const optimization = calculateOptimalPayments(debts, [], extra_amount || 0, strategy_type);
+            res.json(optimization);
+        }
+    });
+});
+
+// Get payment recommendations for next 30 days
+app.get('/api/payment-calendar', (req, res) => {
+    const days = parseInt(req.query.days) || 30;
+    
+    Promise.all([
+        new Promise((resolve, reject) => {
+            db.all("SELECT * FROM accounts WHERE is_active = 1", (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        }),
+        new Promise((resolve, reject) => {
+            db.all("SELECT * FROM expenses WHERE is_active = 1", (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        })
+    ]).then(([accounts, expenses]) => {
+        const calendar = generatePaymentCalendar(accounts, expenses, days);
+        res.json(calendar);
+    }).catch(err => {
+        res.status(500).json({ error: err.message });
+    });
+});
+
+// Enhanced financial summary with debt optimization insights
+app.get('/api/financial-summary', (req, res) => {
+    Promise.all([
+        new Promise((resolve, reject) => {
+            db.all("SELECT * FROM accounts WHERE is_active = 1", (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        }),
+        new Promise((resolve, reject) => {
+            db.all("SELECT * FROM savings_goals WHERE is_active = 1", (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        }),
+        new Promise((resolve, reject) => {
+            db.all("SELECT * FROM income WHERE is_active = 1", (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        }),
+        new Promise((resolve, reject) => {
+            db.all("SELECT * FROM expenses WHERE is_active = 1", (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        })
+    ]).then(([accounts, goals, income, expenses]) => {
+        const summary = generateFinancialSummary(accounts, goals, income, expenses);
+        res.json(summary);
+    }).catch(err => {
+        res.status(500).json({ error: err.message });
+    });
+});
+
+// =============================================================================
+// LEGACY ENDPOINTS (MAINTAINED FOR COMPATIBILITY)
+// =============================================================================
+
+// Legacy cash flow projection endpoint
 app.get('/api/cashflow', (req, res) => {
     const days = parseInt(req.query.days) || 30;
     
@@ -427,9 +708,16 @@ app.get('/api/cashflow', (req, res) => {
             });
         }),
         new Promise((resolve, reject) => {
-            db.get("SELECT current_balance FROM account_balance WHERE id = 1", (err, row) => {
-                if (err) reject(err);
-                else resolve(row ? row.current_balance : 0);
+            // Get balance from accounts table or legacy table
+            db.get(`SELECT current_balance FROM accounts WHERE type = 'checking' ORDER BY id ASC LIMIT 1`, (err, row) => {
+                if (err || !row) {
+                    db.get("SELECT current_balance FROM account_balance WHERE id = 1", (err2, row2) => {
+                        if (err2) reject(err2);
+                        else resolve(row2 ? row2.current_balance : 0);
+                    });
+                } else {
+                    resolve(row.current_balance);
+                }
             });
         })
     ]).then(([income, expenses, currentBalance]) => {
@@ -441,7 +729,7 @@ app.get('/api/cashflow', (req, res) => {
     });
 });
 
-// Enhanced summary endpoint
+// Legacy summary endpoint
 app.get('/api/summary', (req, res) => {
     Promise.all([
         new Promise((resolve, reject) => {
@@ -457,9 +745,16 @@ app.get('/api/summary', (req, res) => {
             });
         }),
         new Promise((resolve, reject) => {
-            db.get("SELECT current_balance FROM account_balance WHERE id = 1", (err, row) => {
-                if (err) reject(err);
-                else resolve(row ? row.current_balance : 0);
+            // Get balance from accounts table or legacy table
+            db.get(`SELECT current_balance FROM accounts WHERE type = 'checking' ORDER BY id ASC LIMIT 1`, (err, row) => {
+                if (err || !row) {
+                    db.get("SELECT current_balance FROM account_balance WHERE id = 1", (err2, row2) => {
+                        if (err2) reject(err2);
+                        else resolve(row2 ? row2.current_balance : 0);
+                    });
+                } else {
+                    resolve(row.current_balance);
+                }
             });
         }),
         new Promise((resolve, reject) => {
@@ -518,9 +813,229 @@ app.get('/api/summary', (req, res) => {
     });
 });
 
+// =============================================================================
+// HELPER FUNCTIONS FOR CALCULATIONS
+// =============================================================================
+
+function calculateOptimalPayments(debts, goals, extraAmount, strategyType) {
+    const totalMinimumPayments = debts.reduce((sum, debt) => sum + (parseFloat(debt.minimum_payment) || 0), 0);
+    let remainingExtra = extraAmount;
+    const recommendations = [];
+    
+    // Always pay minimums first
+    debts.forEach(debt => {
+        if (debt.minimum_payment > 0) {
+            recommendations.push({
+                account_id: debt.id,
+                account_name: debt.name,
+                payment_amount: parseFloat(debt.minimum_payment),
+                payment_type: 'minimum',
+                reasoning: 'Required minimum payment'
+            });
+        }
+    });
+    
+    // Sort debts based on strategy
+    const sortedDebts = [...debts].sort((a, b) => {
+        if (strategyType === 'avalanche') {
+            return parseFloat(b.apr || 0) - parseFloat(a.apr || 0); // Highest APR first
+        } else if (strategyType === 'snowball') {
+            return parseFloat(a.current_balance) - parseFloat(b.current_balance); // Lowest balance first
+        }
+        return 0;
+    });
+    
+    // Allocate extra payments to debts
+    for (const debt of sortedDebts) {
+        if (remainingExtra <= 0) break;
+        
+        const maxPayment = Math.min(remainingExtra, parseFloat(debt.current_balance));
+        if (maxPayment > 0) {
+            recommendations.push({
+                account_id: debt.id,
+                account_name: debt.name,
+                payment_amount: maxPayment,
+                payment_type: 'extra',
+                reasoning: `${strategyType === 'avalanche' ? 'Highest APR' : 'Lowest balance'} debt`
+            });
+            remainingExtra -= maxPayment;
+        }
+    }
+    
+    // Include high-priority savings goals if there's still money left
+    if (remainingExtra > 0 && goals.length > 0) {
+        const priorityGoals = goals
+            .filter(g => parseFloat(g.current_amount) < parseFloat(g.target_amount))
+            .sort((a, b) => a.priority_level - b.priority_level); // Lower number = higher priority
+        
+        for (const goal of priorityGoals) {
+            if (remainingExtra <= 0) break;
+            
+            const needed = parseFloat(goal.target_amount) - parseFloat(goal.current_amount);
+            const allocation = Math.min(remainingExtra, needed, remainingExtra * 0.3); // Don't allocate more than 30% to savings
+            
+            if (allocation > 0) {
+                recommendations.push({
+                    goal_id: goal.id,
+                    goal_name: goal.name,
+                    payment_amount: allocation,
+                    payment_type: 'savings',
+                    reasoning: `Priority ${goal.priority_level} ${goal.goal_type} goal`
+                });
+                remainingExtra -= allocation;
+            }
+        }
+    }
+    
+    // Calculate projected savings and payoff timeline
+    const totalInterestSaved = calculateInterestSavings(debts, recommendations);
+    const payoffTimeline = calculatePayoffTimeline(debts, recommendations);
+    
+    return {
+        recommendations,
+        total_extra_allocated: extraAmount - remainingExtra,
+        remaining_extra: remainingExtra,
+        projected_interest_saved: totalInterestSaved,
+        estimated_payoff_months: payoffTimeline,
+        strategy_used: strategyType
+    };
+}
+
+function calculateInterestSavings(debts, recommendations) {
+    // Simplified interest calculation - could be enhanced
+    let totalSavings = 0;
+    
+    debts.forEach(debt => {
+        const extraPayment = recommendations
+            .filter(r => r.account_id === debt.id && r.payment_type === 'extra')
+            .reduce((sum, r) => sum + r.payment_amount, 0);
+        
+        if (extraPayment > 0 && debt.apr > 0) {
+            // Rough estimate: extra payment saves ~6 months of interest on average
+            const monthlyInterest = (parseFloat(debt.current_balance) * (parseFloat(debt.apr) / 100)) / 12;
+            totalSavings += monthlyInterest * 6; // Simplified calculation
+        }
+    });
+    
+    return totalSavings;
+}
+
+function calculatePayoffTimeline(debts, recommendations) {
+    // Simplified timeline calculation
+    const totalDebt = debts.reduce((sum, debt) => sum + parseFloat(debt.current_balance), 0);
+    const totalMonthlyPayments = recommendations
+        .filter(r => r.account_id) // Only debt payments
+        .reduce((sum, r) => sum + r.payment_amount, 0);
+    
+    if (totalMonthlyPayments === 0 || totalDebt === 0) return 0;
+    
+    // Very rough estimate - actual calculation would need to account for compound interest
+    return Math.ceil(totalDebt / totalMonthlyPayments);
+}
+
+function generatePaymentCalendar(accounts, expenses, days) {
+    const calendar = [];
+    const today = new Date();
+    
+    for (let i = 0; i < days; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        
+        const dayPayments = [];
+        
+        // Check for credit card due dates
+        accounts.forEach(account => {
+            if (account.type === 'credit_card' && account.due_day && account.minimum_payment > 0) {
+                if (date.getDate() === account.due_day) {
+                    dayPayments.push({
+                        type: 'minimum_payment',
+                        account_name: account.name,
+                        amount: account.minimum_payment,
+                        is_critical: true
+                    });
+                }
+            }
+        });
+        
+        // Check for scheduled expenses
+        expenses.forEach(expense => {
+            if (expense.payment_day && date.getDate() === expense.payment_day) {
+                dayPayments.push({
+                    type: 'expense',
+                    name: expense.name,
+                    amount: expense.amount,
+                    category: expense.category,
+                    account_id: expense.account_id
+                });
+            }
+        });
+        
+        if (dayPayments.length > 0) {
+            calendar.push({
+                date: date.toISOString().split('T')[0],
+                payments: dayPayments,
+                total_amount: dayPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0)
+            });
+        }
+    }
+    
+    return calendar;
+}
+
+function generateFinancialSummary(accounts, goals, income, expenses) {
+    const checking = accounts.filter(a => a.type === 'checking');
+    const savings = accounts.filter(a => a.type === 'savings');
+    const creditCards = accounts.filter(a => a.type === 'credit_card');
+    
+    const totalChecking = checking.reduce((sum, a) => sum + parseFloat(a.current_balance), 0);
+    const totalSavings = savings.reduce((sum, a) => sum + parseFloat(a.current_balance), 0);
+    const totalDebt = creditCards.reduce((sum, a) => sum + parseFloat(a.current_balance), 0);
+    const totalCreditLimit = creditCards.reduce((sum, a) => sum + parseFloat(a.credit_limit || 0), 0);
+    const totalMinimumPayments = creditCards.reduce((sum, a) => sum + parseFloat(a.minimum_payment || 0), 0);
+    
+    const weightedAPR = creditCards.length > 0 && totalDebt > 0 ? 
+        creditCards.reduce((sum, a) => sum + (parseFloat(a.current_balance) * parseFloat(a.apr || 0)), 0) / totalDebt : 0;
+    
+    const totalGoalsTarget = goals.reduce((sum, g) => sum + parseFloat(g.target_amount), 0);
+    const totalGoalsCurrent = goals.reduce((sum, g) => sum + parseFloat(g.current_amount), 0);
+    
+    const monthlyIncome = income.reduce((sum, inc) => {
+        const multiplier = { 'weekly': 4.33, 'bi-weekly': 2.17, 'monthly': 1, 'yearly': 1/12, 'one-time': 0 };
+        return sum + (parseFloat(inc.amount) * (multiplier[inc.frequency] || 0));
+    }, 0);
+    
+    const monthlyExpenses = expenses.reduce((sum, exp) => {
+        if (!exp.is_recurring) return sum;
+        const multiplier = { 'weekly': 4.33, 'bi-weekly': 2.17, 'monthly': 1, 'yearly': 1/12, 'one-time': 0 };
+        return sum + (parseFloat(exp.amount) * (multiplier[exp.frequency] || 0));
+    }, 0);
+    
+    return {
+        liquid_cash: totalChecking + totalSavings,
+        total_checking: totalChecking,
+        total_savings: totalSavings,
+        total_debt: totalDebt,
+        total_credit_limit: totalCreditLimit,
+        credit_utilization: totalCreditLimit > 0 ? (totalDebt / totalCreditLimit * 100) : 0,
+        total_minimum_payments: totalMinimumPayments,
+        weighted_apr: weightedAPR,
+        net_worth: totalChecking + totalSavings - totalDebt,
+        monthly_income: monthlyIncome,
+        monthly_expenses: monthlyExpenses + totalMinimumPayments,
+        available_for_extra_payments: monthlyIncome - monthlyExpenses - totalMinimumPayments,
+        savings_goals_progress: totalGoalsTarget > 0 ? (totalGoalsCurrent / totalGoalsTarget * 100) : 0,
+        total_goals_remaining: totalGoalsTarget - totalGoalsCurrent,
+        accounts_summary: {
+            checking_accounts: checking.length,
+            savings_accounts: savings.length,
+            credit_cards: creditCards.length
+        }
+    };
+}
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Enhanced Expense Tracker running on port ${PORT}`);
+    console.log(`Financial Optimization Manager running on port ${PORT}`);
     console.log(`Database location: ${dbPath}`);
 });
 

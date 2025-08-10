@@ -3,360 +3,966 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Manager</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Financial Optimization Manager</title>
+    <style>
+        /* Import Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        :root {
+            /* Enhanced Dark Theme */
+            --bg-primary: #0f1419;
+            --bg-secondary: #1a1f2e;
+            --bg-card: #242937;
+            --bg-hover: #2d3748;
+            --bg-input: #1e2532;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --text-muted: #718096;
+            --accent-primary: #4299e1;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --danger: #f56565;
+            --info: #38b2ac;
+            --border: #2d3748;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Enhanced Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+            padding: 25px;
+            text-align: center;
+            border-bottom: 2px solid var(--accent-primary);
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-primary), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Navigation */
+        .nav-container {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px var(--shadow);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            max-width: 1200px;
+            margin: 0 auto;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .nav-tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: 2px solid var(--border);
+            border-radius: var(--border-radius);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: var(--transition);
+            white-space: nowrap;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .nav-tab:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+        }
+
+        .nav-tab.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Page Content */
+        .page-content {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .page-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Card System */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 15px var(--shadow);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--shadow);
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .card-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Grid System */
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .nav-tabs { flex-direction: column; }
+            .header h1 { font-size: 1.8rem; }
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--success));
+        }
+
+        .summary-card h4 {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .amount {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .positive { color: var(--success); }
+        .negative { color: var(--danger); }
+        .warning { color: var(--warning); }
+        .neutral { color: var(--text-secondary); }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: var(--border-radius);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn-full {
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        /* Account & Goal Lists */
+        .item-list {
+            margin-top: 20px;
+        }
+
+        .item {
+            background: var(--bg-input);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px var(--shadow);
+        }
+
+        .item-info h5 {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .item-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .item-amount {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-right: 15px;
+        }
+
+        /* Priority Indicators */
+        .priority-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .priority-1, .priority-2 { background: var(--danger); }
+        .priority-3, .priority-4 { background: var(--warning); }
+        .priority-5, .priority-6 { background: var(--info); }
+        .priority-7, .priority-8 { background: var(--success); }
+        .priority-9, .priority-10 { background: var(--text-muted); }
+
+        /* Payment Recommendations */
+        .recommendation-card {
+            background: linear-gradient(135deg, rgba(66, 153, 225, 0.1), rgba(72, 187, 120, 0.1));
+            border: 2px solid var(--accent-primary);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+        }
+
+        .recommendation-card h4 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: "Loading...";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-style: italic;
+            background: var(--bg-input);
+            border-radius: var(--border-radius);
+            border: 2px dashed var(--border);
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--accent-primary));
+            transition: width 0.3s ease;
+        }
+
+        /* Account Type Badges */
+        .account-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-checking { background: var(--success); color: white; }
+        .badge-savings { background: var(--info); color: white; }
+        .badge-credit_card { background: var(--danger); color: white; }
+
+        /* Goal Type Badges */
+        .goal-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-emergency { background: var(--danger); color: white; }
+        .badge-time_sensitive { background: var(--warning); color: white; }
+        .badge-flexible { background: var(--info); color: white; }
+        .badge-long_term { background: var(--success); color: white; }
+    </style>
 </head>
 <body>
+    <div class="header">
+        <h1>Financial Optimization Manager</h1>
+        <p>Smart debt management and financial planning</p>
+    </div>
+
+    <div class="nav-container">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+            <button class="nav-tab" onclick="showPage('accounts')">Accounts</button>
+            <button class="nav-tab" onclick="showPage('income-expenses')">Income & Expenses</button>
+            <button class="nav-tab" onclick="showPage('savings-goals')">Savings Goals</button>
+            <button class="nav-tab" onclick="showPage('optimization')">Payment Strategy</button>
+            <button class="nav-tab" onclick="showPage('calendar')">Payment Calendar</button>
+        </div>
+    </div>
+
     <div class="container">
-        <div class="header">
-            <h1>Personal Finance Manager</h1>
-            <p>Take control of your financial future with style</p>
-        </div>
-
-        <!-- Tab Navigation -->
-        <div class="tabs">
-            <button class="tab active" onclick="showTab('overview')">
-                <span class="tab-icon">?</span>
-                Overview
-            </button>
-            <button class="tab" onclick="showTab('income')">
-                <span class="tab-icon">+</span>
-                Income
-            </button>
-            <button class="tab" onclick="showTab('expenses')">
-                <span class="tab-icon">-</span>
-                Expenses
-            </button>
-            <button class="tab" onclick="showTab('budget')">
-                <span class="tab-icon">?</span>
-                Budget
-            </button>
-            <button class="tab" onclick="showTab('cashflow')">
-                <span class="tab-icon">?</span>
-                Cash Flow
-            </button>
-            <button class="tab" onclick="showTab('savings')">
-                <span class="tab-icon">?</span>
-                Savings
-            </button>
-        </div>
-
-        <!-- Overview Tab -->
-        <div id="overview" class="tab-content active">
-            <!-- Current Balance Input -->
-            <div class="balance-input">
-                <h3>Current Account Balance</h3>
-                <div class="balance-form">
-                    <div class="input-group">
-                        <span class="input-prefix">$</span>
-                        <input type="number" id="currentBalance" step="0.01" placeholder="0.00" class="balance-field">
-                        <button class="btn btn-primary" onclick="updateBalance()">Update Balance</button>
-                    </div>
-                </div>
-                <div class="balance-display" id="balanceDisplay">$0.00</div>
-            </div>
-
-            <!-- Summary Section -->
-            <div class="summary-grid" id="summaryGrid">
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page-content active">
+            <div class="summary-grid" id="dashboardSummary">
                 <!-- Summary cards will be populated by JavaScript -->
             </div>
 
-            <!-- Quick Actions -->
-            <div class="main-grid">
-                <div class="section">
-                    <div class="section-header">
-                        <h2>Quick Add Transaction</h2>
-                        <p>Add one-time income or expenses quickly</p>
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Account Overview</h3>
+                        <p>All your accounts at a glance</p>
                     </div>
-                    <form id="quickTransactionForm" class="form">
-                        <div class="form-group">
-                            <label for="quickType">Transaction Type</label>
-                            <select id="quickType" class="form-select" required>
-                                <option value="">Select type</option>
-                                <option value="income">+ Income</option>
-                                <option value="expense">- Expense</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="quickDescription">Description</label>
-                            <input type="text" id="quickDescription" class="form-input" placeholder="e.g., Bonus, Grocery shopping" required>
-                        </div>
+                    <div class="card-body" id="accountOverview">
+                        <!-- Account overview will be populated -->
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Next Payment Recommendations</h3>
+                        <p>Smart suggestions for this month</p>
+                    </div>
+                    <div class="card-body" id="paymentRecommendations">
+                        <!-- Payment recommendations will be populated -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <h3>Priority Goals Progress</h3>
+                    <p>Track your most important financial goals</p>
+                </div>
+                <div class="card-body" id="goalProgress">
+                    <!-- Goal progress will be populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Accounts Page -->
+        <div id="accounts" class="page-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Add New Account</h3>
+                    <p>Add checking, savings, or credit card accounts</p>
+                </div>
+                <div class="card-body">
+                    <form id="accountForm">
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="quickAmount">Amount</label>
-                                <div class="input-group">
-                                    <span class="input-prefix">$</span>
-                                    <input type="number" id="quickAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                                <label class="form-label">Account Name</label>
+                                <input type="text" id="accountName" class="form-input" placeholder="e.g., Chase Freedom, Wells Fargo Checking" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Account Type</label>
+                                <select id="accountType" class="form-select" onchange="toggleAccountFields()" required>
+                                    <option value="">Select type</option>
+                                    <option value="checking">Checking Account</option>
+                                    <option value="savings">Savings Account</option>
+                                    <option value="credit_card">Credit Card</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Current Balance</label>
+                                <input type="number" id="accountBalance" class="form-input" step="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Priority Level (1-10)</label>
+                                <select id="accountPriority" class="form-select">
+                                    <option value="1">1 - Highest Priority</option>
+                                    <option value="2">2 - Very High</option>
+                                    <option value="3">3 - High</option>
+                                    <option value="4">4 - Above Average</option>
+                                    <option value="5" selected>5 - Average</option>
+                                    <option value="6">6 - Below Average</option>
+                                    <option value="7">7 - Low</option>
+                                    <option value="8">8 - Very Low</option>
+                                    <option value="9">9 - Minimal</option>
+                                    <option value="10">10 - Lowest Priority</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="creditCardFields" class="credit-card-fields" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Credit Limit</label>
+                                    <input type="number" id="creditLimit" class="form-input" step="0.01" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">APR (%)</label>
+                                    <input type="number" id="accountAPR" class="form-input" step="0.01" placeholder="24.99">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label for="quickDate">Date</label>
-                                <input type="date" id="quickDate" class="form-input" required>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Minimum Payment</label>
+                                    <input type="number" id="minimumPayment" class="form-input" step="0.01" placeholder="35.00">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Due Day of Month</label>
+                                    <input type="number" id="dueDay" class="form-input" min="1" max="31" placeholder="15">
+                                </div>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success btn-full">Add Transaction</button>
+
+                        <button type="submit" class="btn btn-primary btn-full">Add Account</button>
                     </form>
                 </div>
+            </div>
 
-                <div class="section">
-                    <div class="section-header">
-                        <h2>Upcoming Payments</h2>
-                        <p>Next 7 days</p>
-                    </div>
-                    <div id="upcomingPayments" class="payments-list">
-                        <!-- Upcoming payments will be populated here -->
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <h3>Your Accounts</h3>
+                    <p>Manage all your financial accounts</p>
+                </div>
+                <div class="card-body">
+                    <div id="accountsList" class="item-list">
+                        <!-- Accounts will be populated by JavaScript -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Income Tab -->
-        <div id="income" class="tab-content">
-            <div class="section">
-                <div class="section-header">
-                    <h2>Income Sources</h2>
-                    <p>Track all your income streams</p>
-                </div>
-                <form id="incomeForm" class="form">
-                    <div class="form-group">
-                        <label for="incomeSource">Income Source</label>
-                        <input type="text" id="incomeSource" class="form-input" placeholder="e.g., Salary, Freelance, Side Hustle" required>
+        <!-- Income & Expenses Page -->
+        <div id="income-expenses" class="page-content">
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Add Income Source</h3>
+                        <p>Track all your income streams</p>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="incomeAmount">Amount</label>
-                            <div class="input-group">
-                                <span class="input-prefix">$</span>
-                                <input type="number" id="incomeAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                    <div class="card-body">
+                        <form id="incomeForm">
+                            <div class="form-group">
+                                <label class="form-label">Income Source</label>
+                                <input type="text" id="incomeSource" class="form-input" placeholder="e.g., Salary, Freelance" required>
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="incomeFrequency">Frequency</label>
-                            <select id="incomeFrequency" class="form-select" onchange="toggleIncomeOptions()" required>
-                                <option value="">Select frequency</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="bi-weekly">Bi-weekly</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="yearly">Yearly</option>
-                                <option value="one-time">One-time</option>
-                            </select>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Amount</label>
+                                    <input type="number" id="incomeAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Frequency</label>
+                                    <select id="incomeFrequency" class="form-select" required>
+                                        <option value="">Select frequency</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="bi-weekly">Bi-weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Deposit Account</label>
+                                    <select id="incomeAccount" class="form-select">
+                                        <option value="">Select account</option>
+                                        <!-- Populated by JavaScript -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" id="incomeStartDate" class="form-input" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-full">Add Income</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Add Expense</h3>
+                        <p>Track bills and recurring expenses</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="expenseForm">
+                            <div class="form-group">
+                                <label class="form-label">Expense Name</label>
+                                <input type="text" id="expenseName" class="form-input" placeholder="e.g., Rent, Electric Bill" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Amount</label>
+                                    <input type="number" id="expenseAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Category</label>
+                                    <input type="text" id="expenseCategory" class="form-input" placeholder="e.g., Housing, Utilities">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Frequency</label>
+                                    <select id="expenseFrequency" class="form-select" required>
+                                        <option value="">Select frequency</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="bi-weekly">Bi-weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="yearly">Yearly</option>
+                                        <option value="one-time">One-time</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Payment Account</label>
+                                    <select id="expenseAccount" class="form-select">
+                                        <option value="">Select account</option>
+                                        <!-- Populated by JavaScript -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Priority Level</label>
+                                    <select id="expensePriority" class="form-select">
+                                        <option value="1">1 - Critical (Must Pay)</option>
+                                        <option value="2">2 - Very Important</option>
+                                        <option value="3">3 - Important</option>
+                                        <option value="4">4 - Above Average</option>
+                                        <option value="5" selected>5 - Average</option>
+                                        <option value="6">6 - Below Average</option>
+                                        <option value="7">7 - Low Priority</option>
+                                        <option value="8">8 - Very Low</option>
+                                        <option value="9">9 - Optional</option>
+                                        <option value="10">10 - Unnecessary</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" id="expenseStartDate" class="form-input" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-full">Add Expense</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-2" style="margin-top: 20px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Income Sources</h3>
+                        <p>All your income streams</p>
+                    </div>
+                    <div class="card-body">
+                        <div id="incomeList" class="item-list">
+                            <!-- Income items will be populated -->
                         </div>
                     </div>
-                    
-                    <div id="incomeOptions" class="frequency-options">
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Expenses & Bills</h3>
+                        <p>All your expenses and bills</p>
+                    </div>
+                    <div class="card-body">
+                        <div id="expensesList" class="item-list">
+                            <!-- Expense items will be populated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Savings Goals Page -->
+        <div id="savings-goals" class="page-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Add Savings Goal</h3>
+                    <p>Set and track your financial goals</p>
+                </div>
+                <div class="card-body">
+                    <form id="savingsForm">
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="incomeDepositDay">Deposit Day of Month (for monthly)</label>
-                                <input type="number" id="incomeDepositDay" class="form-input" min="1" max="31" placeholder="e.g., 15">
+                                <label class="form-label">Goal Name</label>
+                                <input type="text" id="goalName" class="form-input" placeholder="e.g., Emergency Fund, Vacation" required>
                             </div>
                             <div class="form-group">
-                                <label for="incomeSpecificDate">Or Specific Date (for one-time)</label>
-                                <input type="date" id="incomeSpecificDate" class="form-input">
+                                <label class="form-label">Goal Type</label>
+                                <select id="goalType" class="form-select" required>
+                                    <option value="emergency">Emergency Fund</option>
+                                    <option value="time_sensitive">Time Sensitive</option>
+                                    <option value="flexible">Flexible</option>
+                                    <option value="long_term">Long Term</option>
+                                </select>
                             </div>
                         </div>
-                    </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Target Amount</label>
+                                <input type="number" id="goalTarget" class="form-input" step="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Current Amount</label>
+                                <input type="number" id="goalCurrent" class="form-input" step="0.01" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Target Date (Optional)</label>
+                                <input type="date" id="goalDate" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Priority Level</label>
+                                <select id="goalPriority" class="form-select">
+                                    <option value="1">1 - Highest Priority</option>
+                                    <option value="2">2 - Very High</option>
+                                    <option value="3">3 - High</option>
+                                    <option value="4">4 - Above Average</option>
+                                    <option value="5" selected>5 - Average</option>
+                                    <option value="6">6 - Below Average</option>
+                                    <option value="7">7 - Low</option>
+                                    <option value="8">8 - Very Low</option>
+                                    <option value="9">9 - Minimal</option>
+                                    <option value="10">10 - Lowest Priority</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Auto Contribution</label>
+                                <input type="number" id="goalAutoContrib" class="form-input" step="0.01" placeholder="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Savings Account</label>
+                                <select id="goalAccount" class="form-select">
+                                    <option value="">Select account</option>
+                                    <!-- Populated by JavaScript -->
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-full">Add Savings Goal</button>
+                    </form>
+                </div>
+            </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="incomeStartDate">Start Date</label>
-                            <input type="date" id="incomeStartDate" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="incomeEndDate">End Date (optional)</label>
-                            <input type="date" id="incomeEndDate" class="form-input">
-                        </div>
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <h3>Your Savings Goals</h3>
+                    <p>Track progress toward your financial targets</p>
+                </div>
+                <div class="card-body">
+                    <div id="savingsGoalsList" class="item-list">
+                        <!-- Savings goals will be populated -->
                     </div>
-                    <button type="submit" class="btn btn-success btn-full">Add Income Source</button>
-                </form>
-                
-                <div class="item-list" id="incomeList">
-                    <!-- Income items will be populated here -->
                 </div>
             </div>
         </div>
 
-        <!-- Expenses Tab -->
-        <div id="expenses" class="tab-content">
-            <div class="section">
-                <div class="section-header">
-                    <h2>Expenses & Bills</h2>
-                    <p>Track your spending and recurring bills</p>
+        <!-- Payment Optimization Page -->
+        <div id="optimization" class="page-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Payment Strategy Calculator</h3>
+                    <p>Find the optimal way to allocate your extra money</p>
                 </div>
-                <form id="expenseForm" class="form">
-                    <div class="form-group">
-                        <label for="expenseName">Expense Name</label>
-                        <input type="text" id="expenseName" class="form-input" placeholder="e.g., Rent, Electric Bill, Groceries" required>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="expenseAmount">Amount</label>
-                            <div class="input-group">
-                                <span class="input-prefix">$</span>
-                                <input type="number" id="expenseAmount" class="form-input" step="0.01" placeholder="0.00" required>
+                <div class="card-body">
+                    <form id="optimizationForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Extra Payment Amount</label>
+                                <input type="number" id="extraAmount" class="form-input" step="0.01" placeholder="500.00">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Strategy Type</label>
+                                <select id="strategyType" class="form-select">
+                                    <option value="avalanche">Debt Avalanche (Highest APR first)</option>
+                                    <option value="snowball">Debt Snowball (Lowest balance first)</option>
+                                </select>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="expenseCategory">Category</label>
-                            <input type="text" id="expenseCategory" class="form-input" placeholder="e.g., Housing, Utilities, Food">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="expenseFrequency">Frequency</label>
-                            <select id="expenseFrequency" class="form-select" onchange="toggleExpenseOptions()" required>
-                                <option value="">Select frequency</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="bi-weekly">Bi-weekly</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="yearly">Yearly</option>
-                                <option value="one-time">One-time</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="expenseRecurring" checked>
-                                <span class="checkmark"></span>
-                                Recurring expense
+                            <label>
+                                <input type="checkbox" id="includeSavings" checked> Include savings goals in optimization
                             </label>
                         </div>
-                    </div>
-                    
-                    <div id="expenseOptions" class="frequency-options">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="expensePaymentDay">Payment Day of Month (for monthly)</label>
-                                <input type="number" id="expensePaymentDay" class="form-input" min="1" max="31" placeholder="e.g., 1">
-                            </div>
-                            <div class="form-group">
-                                <label for="expenseSpecificDate">Or Specific Date (for one-time)</label>
-                                <input type="date" id="expenseSpecificDate" class="form-input">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="expenseStartDate">Start Date</label>
-                            <input type="date" id="expenseStartDate" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="expenseEndDate">End Date (optional)</label>
-                            <input type="date" id="expenseEndDate" class="form-input">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-danger btn-full">Add Expense</button>
-                </form>
-                
-                <div class="item-list" id="expenseList">
-                    <!-- Expense items will be populated here -->
+                        <button type="submit" class="btn btn-primary btn-full">Calculate Optimal Strategy</button>
+                    </form>
                 </div>
+            </div>
+
+            <div id="optimizationResults" style="margin-top: 20px;">
+                <!-- Optimization results will be populated -->
             </div>
         </div>
 
-        <!-- Budget Tab -->
-        <div id="budget" class="tab-content">
-            <div class="section">
-                <div class="section-header">
-                    <h2>Budget Categories</h2>
-                    <p>Set spending limits for different categories</p>
+        <!-- Payment Calendar Page -->
+        <div id="calendar" class="page-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Payment Calendar</h3>
+                    <p>See all your upcoming payments and due dates</p>
                 </div>
-                <form id="budgetForm" class="form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="budgetCategory">Category</label>
-                            <input type="text" id="budgetCategory" class="form-input" placeholder="e.g., Entertainment, Dining Out, Shopping" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="budgetAmount">Monthly Budget</label>
-                            <div class="input-group">
-                                <span class="input-prefix">$</span>
-                                <input type="number" id="budgetAmount" class="form-input" step="0.01" placeholder="0.00" required>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-warning btn-full">Set Budget</button>
-                </form>
-                
-                <div class="item-list" id="budgetList">
-                    <!-- Budget items will be populated here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Cash Flow Tab -->
-        <div id="cashflow" class="tab-content">
-            <div class="section">
-                <div class="section-header">
-                    <h2>Cash Flow Projection</h2>
-                    <p>See your financial future</p>
-                </div>
-                <div class="form-group">
-                    <label for="cashflowDays">Projection Period:</label>
-                    <select id="cashflowDays" class="form-select" onchange="loadCashFlow()">
-                        <option value="7">7 days</option>
-                        <option value="14">14 days</option>
-                        <option value="30" selected>30 days</option>
-                        <option value="60">60 days</option>
-                        <option value="90">90 days</option>
-                    </select>
-                </div>
-                <div id="cashFlowList" class="cashflow-list">
-                    <!-- Cash flow projection will be populated here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Savings Goals Tab -->
-        <div id="savings" class="tab-content">
-            <div class="section">
-                <div class="section-header">
-                    <h2>Savings Goals</h2>
-                    <p>Track your progress toward financial goals</p>
-                </div>
-                <form id="savingsForm" class="form">
+                <div class="card-body">
                     <div class="form-group">
-                        <label for="savingsName">Goal Name</label>
-                        <input type="text" id="savingsName" class="form-input" placeholder="e.g., Emergency Fund, Vacation, New Car" required>
+                        <label class="form-label">View Period</label>
+                        <select id="calendarDays" class="form-select" onchange="loadPaymentCalendar()">
+                            <option value="7">Next 7 days</option>
+                            <option value="14">Next 2 weeks</option>
+                            <option value="30" selected>Next 30 days</option>
+                            <option value="60">Next 60 days</option>
+                            <option value="90">Next 90 days</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="savingsTarget">Target Amount</label>
-                            <div class="input-group">
-                                <span class="input-prefix">$</span>
-                                <input type="number" id="savingsTarget" class="form-input" step="0.01" placeholder="0.00" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="savingsCurrent">Current Amount</label>
-                            <div class="input-group">
-                                <span class="input-prefix">$</span>
-                                <input type="number" id="savingsCurrent" class="form-input" step="0.01" placeholder="0.00">
-                            </div>
-                        </div>
+                    <div id="paymentCalendar" class="item-list">
+                        <!-- Payment calendar will be populated -->
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="savingsTargetDate">Target Date</label>
-                            <input type="date" id="savingsTargetDate" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="savingsMonthly">Monthly Contribution</label>
-                            <div class="input-group">
-                                <span class="input-prefix">$</span>
-                                <input type="number" id="savingsMonthly" class="form-input" step="0.01" placeholder="0.00">
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-info btn-full">Add Savings Goal</button>
-                </form>
-                
-                <div class="item-list" id="savingsList">
-                    <!-- Savings goals will be populated here -->
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
-</body>
-</html>
+    <script>
+        // Enhanced JavaScript for the Financial Optimization Manager
+        let currentPage = 'dashboard';
+        let accounts = [];
+        let savingsGoals = [];
+        let currentOptimization = null;
+
+        // Page Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active class from all nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            currentPage = pageId;
+            
+            // Load page-specific data
+            loadPageData(pageId);
+        }
+
+        // Load data when page is shown
+        function loadPageData(pageId) {
+            switch(pageId) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'accounts':
+                    loadAccounts();
+                    break;
+                case 'income-expenses':
+                    loadIncomeExpenses();
+                    break;
+                case 'savings-goals':
+                    loadSavingsGoals();
+                    break;
+                case 'optimization':
+                    loadOptimizationData();
+                    break;
+                case 'calendar':
+                    loadPaymentCalendar();
+                    break;
+            }
+        }
+
+        // Utility Functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
