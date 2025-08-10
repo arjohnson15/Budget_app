@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     volumes:
       # Mount a volume to persist the SQLite database
-      - expense-data:/app/data
+      - /volume1/docker/Budget_app:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3000
