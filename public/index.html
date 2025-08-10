@@ -9,34 +9,34 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 Personal Finance Manager</h1>
+            <h1>Personal Finance Manager</h1>
             <p>Take control of your financial future with style</p>
         </div>
 
         <!-- Tab Navigation -->
         <div class="tabs">
             <button class="tab active" onclick="showTab('overview')">
-                <span class="tab-icon">📊</span>
+                <span class="tab-icon">?</span>
                 Overview
             </button>
             <button class="tab" onclick="showTab('income')">
-                <span class="tab-icon">💵</span>
+                <span class="tab-icon">+</span>
                 Income
             </button>
             <button class="tab" onclick="showTab('expenses')">
-                <span class="tab-icon">💳</span>
+                <span class="tab-icon">-</span>
                 Expenses
             </button>
             <button class="tab" onclick="showTab('budget')">
-                <span class="tab-icon">🎯</span>
+                <span class="tab-icon">?</span>
                 Budget
             </button>
             <button class="tab" onclick="showTab('cashflow')">
-                <span class="tab-icon">📈</span>
+                <span class="tab-icon">?</span>
                 Cash Flow
             </button>
             <button class="tab" onclick="showTab('savings')">
-                <span class="tab-icon">🏦</span>
+                <span class="tab-icon">?</span>
                 Savings
             </button>
         </div>
@@ -45,7 +45,7 @@
         <div id="overview" class="tab-content active">
             <!-- Current Balance Input -->
             <div class="balance-input">
-                <h3>💳 Current Account Balance</h3>
+                <h3>Current Account Balance</h3>
                 <div class="balance-form">
                     <div class="input-group">
                         <span class="input-prefix">$</span>
@@ -65,7 +65,7 @@
             <div class="main-grid">
                 <div class="section">
                     <div class="section-header">
-                        <h2>⚡ Quick Add Transaction</h2>
+                        <h2>Quick Add Transaction</h2>
                         <p>Add one-time income or expenses quickly</p>
                     </div>
                     <form id="quickTransactionForm" class="form">
@@ -73,8 +73,8 @@
                             <label for="quickType">Transaction Type</label>
                             <select id="quickType" class="form-select" required>
                                 <option value="">Select type</option>
-                                <option value="income">💰 Income</option>
-                                <option value="expense">💸 Expense</option>
+                                <option value="income">+ Income</option>
+                                <option value="expense">- Expense</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -100,7 +100,7 @@
 
                 <div class="section">
                     <div class="section-header">
-                        <h2>📅 Upcoming Payments</h2>
+                        <h2>Upcoming Payments</h2>
                         <p>Next 7 days</p>
                     </div>
                     <div id="upcomingPayments" class="payments-list">
@@ -114,7 +114,7 @@
         <div id="income" class="tab-content">
             <div class="section">
                 <div class="section-header">
-                    <h2>💵 Income Sources</h2>
+                    <h2>Income Sources</h2>
                     <p>Track all your income streams</p>
                 </div>
                 <form id="incomeForm" class="form">
@@ -134,11 +134,11 @@
                             <label for="incomeFrequency">Frequency</label>
                             <select id="incomeFrequency" class="form-select" onchange="toggleIncomeOptions()" required>
                                 <option value="">Select frequency</option>
-                                <option value="weekly">📅 Weekly</option>
-                                <option value="bi-weekly">📅 Bi-weekly</option>
-                                <option value="monthly">📅 Monthly</option>
-                                <option value="yearly">📅 Yearly</option>
-                                <option value="one-time">⚡ One-time</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="bi-weekly">Bi-weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                                <option value="one-time">One-time</option>
                             </select>
                         </div>
                     </div>
@@ -179,7 +179,7 @@
         <div id="expenses" class="tab-content">
             <div class="section">
                 <div class="section-header">
-                    <h2>💳 Expenses & Bills</h2>
+                    <h2>Expenses & Bills</h2>
                     <p>Track your spending and recurring bills</p>
                 </div>
                 <form id="expenseForm" class="form">
@@ -205,11 +205,11 @@
                             <label for="expenseFrequency">Frequency</label>
                             <select id="expenseFrequency" class="form-select" onchange="toggleExpenseOptions()" required>
                                 <option value="">Select frequency</option>
-                                <option value="weekly">📅 Weekly</option>
-                                <option value="bi-weekly">📅 Bi-weekly</option>
-                                <option value="monthly">📅 Monthly</option>
-                                <option value="yearly">📅 Yearly</option>
-                                <option value="one-time">⚡ One-time</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="bi-weekly">Bi-weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                                <option value="one-time">One-time</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -257,7 +257,7 @@
         <div id="budget" class="tab-content">
             <div class="section">
                 <div class="section-header">
-                    <h2>🎯 Budget Categories</h2>
+                    <h2>Budget Categories</h2>
                     <p>Set spending limits for different categories</p>
                 </div>
                 <form id="budgetForm" class="form">
@@ -287,17 +287,17 @@
         <div id="cashflow" class="tab-content">
             <div class="section">
                 <div class="section-header">
-                    <h2>📈 Cash Flow Projection</h2>
+                    <h2>Cash Flow Projection</h2>
                     <p>See your financial future</p>
                 </div>
                 <div class="form-group">
                     <label for="cashflowDays">Projection Period:</label>
                     <select id="cashflowDays" class="form-select" onchange="loadCashFlow()">
-                        <option value="7">📅 7 days</option>
-                        <option value="14">📅 14 days</option>
-                        <option value="30" selected>📅 30 days</option>
-                        <option value="60">📅 60 days</option>
-                        <option value="90">📅 90 days</option>
+                        <option value="7">7 days</option>
+                        <option value="14">14 days</option>
+                        <option value="30" selected>30 days</option>
+                        <option value="60">60 days</option>
+                        <option value="90">90 days</option>
                     </select>
                 </div>
                 <div id="cashFlowList" class="cashflow-list">
@@ -310,7 +310,7 @@
         <div id="savings" class="tab-content">
             <div class="section">
                 <div class="section-header">
-                    <h2>🏦 Savings Goals</h2>
+                    <h2>Savings Goals</h2>
                     <p>Track your progress toward financial goals</p>
                 </div>
                 <form id="savingsForm" class="form">
